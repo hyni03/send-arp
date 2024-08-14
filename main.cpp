@@ -53,8 +53,6 @@ int macaddr(char *ifname, char *myMacstr) {
 
 Mac getMacAddr(pcap_t *handle, char *sourceIp, char *targetIp, char *myMacstr){
 
-	// Mac senderMac;
-
 	EthArpPacket packet;
 
 	packet.eth_.dmac_ = Mac("FF:FF:FF:FF:FF:FF");
@@ -139,7 +137,6 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 	
-	// 내 MAC addr 가져오기
     char myMacstr[18], *ifname;
 
 	ifname = argv[1];
@@ -166,6 +163,8 @@ int main(int argc, char* argv[]) {
 		char *targetIp = q.front().second;
 
 		q.pop();
+
+		// timeout 및 입력 오류에 대한 오류 처리 필요.
 
 		it = mp.find(senderIp);
 
