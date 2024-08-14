@@ -19,7 +19,8 @@ using namespace std;
 
 
 queue< pair<char *, char *> > q;
-map<char *, char *> mp;
+map<char *, Mac> mp;
+map<char *, Mac>::iterator it;
 
 #pragma pack(push, 1)
 struct EthArpPacket final {
@@ -35,11 +36,6 @@ Param param = {
         .dev_ = NULL
 };
 #pragma pack(pop)
-
-void usage() {
-	printf("syntax: send-arp-test <interface>\n");
-	printf("sample: send-arp-test wlan0\n");
-}
 
 int macaddr(char *ifname, char *myMacstr) {
     struct ifaddrs *ifap, *ifaptr;
@@ -79,7 +75,7 @@ int macaddr(char *ifname, char *myMacstr) {
 
 Mac getMacAddr(pcap_t *handle, char *sourceIp, char *targetIp, char *myMacstr){
 
-	Mac senderMac;
+	// Mac senderMac;
 
 	EthArpPacket packet;
 
@@ -120,20 +116,19 @@ Mac getMacAddr(pcap_t *handle, char *sourceIp, char *targetIp, char *myMacstr){
 				return etharp_packet->arp_.smac_;
 		}
 
-		// senderMac = sMac_parser(packet, targetIp, sourceIp);
+		// snederMac = sMac_parser(packet, targetIp, sourceIp);
 	}
+
 	fprintf(stderr, "Can not get Source Mac Address\n");
 	return Mac("00:00:00:00:00:00");
 }
 
-void send_arp(pcap_t *handle, char *senderIp, char *targetIp, char *myMacstr){
-
-	Mac senderMac = getMacAddr(handle, targetIp, senderIp, myMacstr);
+void send_arp(pcap_t *handle, char *senderIp, char *targetIp, char *myMacstr, Mac senderMac){
 
 	EthArpPacket packet;
 
-	packet.eth_.dmac_ = Mac("00:00:00:00:00:00"); //senderMac
-	packet.eth_.smac_ = Mac("00:00:00:00:00:00"); //myMac
+	packet.eth_.dmac_ = senderMac;
+	packet.eth_.smac_ = Mac(myMacstr); 
 	packet.eth_.type_ = htons(EthHdr::Arp);
 
 	packet.arp_.hrd_ = htons(ArpHdr::ETHER);
@@ -143,7 +138,7 @@ void send_arp(pcap_t *handle, char *senderIp, char *targetIp, char *myMacstr){
 	packet.arp_.op_ = htons(ArpHdr::Request);
 	packet.arp_.smac_ = Mac(myMacstr);
 	packet.arp_.sip_ = htonl(Ip(targetIp));
-	packet.arp_.tmac_ = Mac("00:00:00:00:00:00"); //senderMac
+	packet.arp_.tmac_ = senderMac;
 	packet.arp_.tip_ = htonl(Ip(senderIp));
 
 	int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
@@ -152,10 +147,13 @@ void send_arp(pcap_t *handle, char *senderIp, char *targetIp, char *myMacstr){
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Send-arp %s %s success", senderIp, targetIp);
-
+	printf("Send-arp %s %s success\n", senderIp, targetIp);
 }
 
+void usage() {
+	printf("syntax : send-arp <interface> <sender ip> <target ip> [<sender ip 2> <target ip 2> ...]\n");
+	printf("sample : send-arp wlan0 192.168.10.2 192.168.10.1\n");
+}
 
 int main(int argc, char* argv[]) {
 
@@ -185,18 +183,23 @@ int main(int argc, char* argv[]) {
 		q.push({argv[i], argv[i+1]});
 	}
 
-	for(int i=0;i<q.size();i++){
+	while(!q.empty()){
 		
 		char *senderIp = q.front().first;
 		char *targetIp = q.front().second;
 
 		q.pop();
 
-		if(mp.find(senderIp) != mp.end())
-			continue;
+		it = mp.find(senderIp);
 
-		send_arp(handle, senderIp, targetIp, myMacstr);
-		mp.insert({senderIp, targetIp});
+		if(it != mp.end()){
+			send_arp(handle, senderIp, targetIp, myMacstr, it->second);
+		}
+		Mac senderMac = getMacAddr(handle, targetIp, senderIp, myMacstr);
+		Mac targetMac = getMacAddr(handle, targetIp, senderIp, myMacstr);
+		send_arp(handle, senderIp, targetIp, myMacstr, it->second);
+		mp.insert({senderIp, senderMac});
+		mp.insert({targetIp, targetMac});
 
 	}
 
