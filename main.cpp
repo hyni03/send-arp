@@ -16,8 +16,6 @@
 
 using namespace std;
 
-
-
 queue< pair<char *, char *> > q;
 map<char *, Mac> mp;
 map<char *, Mac>::iterator it;
@@ -28,13 +26,6 @@ struct EthArpPacket final {
 	ArpHdr arp_;
 };
 
-typedef struct {
-        char* dev_;
-} Param;
-
-Param param = {
-        .dev_ = NULL
-};
 #pragma pack(pop)
 
 int macaddr(char *ifname, char *myMacstr) {
@@ -59,19 +50,6 @@ int macaddr(char *ifname, char *myMacstr) {
         return 0;
     }
 }
-
-// Mac sMac_parser (const u_char *packet, char *targetIp, char *sourceIp){
-// 	struct EthArpPacket *etharp_packet = (struct EthArpPacket *) packet;
-
-// 	if( ntohs(etharp_packet->eth_.type_) == EthHdr::Arp && ntohs(etharp_packet->arp_.op_) == ArpHdr::Reply &&
-// 		ntohl(etharp_packet->arp_.sip_) == static_cast<uint32_t>(Ip(targetIp)) && ntohl(etharp_packet->arp_.tip_) == static_cast<uint32_t>(Ip(sourceIp)) ){
-// 			return etharp_packet->arp_.smac_;
-// 	}
-
-// 	fprintf(stderr, "Can not get Source Mac Address\n");
-// 	return Mac("00:00:00:00:00:00");
-// }
-
 
 Mac getMacAddr(pcap_t *handle, char *sourceIp, char *targetIp, char *myMacstr){
 
@@ -116,7 +94,6 @@ Mac getMacAddr(pcap_t *handle, char *sourceIp, char *targetIp, char *myMacstr){
 				return etharp_packet->arp_.smac_;
 		}
 
-		// snederMac = sMac_parser(packet, targetIp, sourceIp);
 	}
 
 	fprintf(stderr, "Can not get Source Mac Address\n");
